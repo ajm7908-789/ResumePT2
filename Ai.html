@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LakeShow Trivia</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --purple: #552583;
+      --gold: #FDB927;
+      --dark: #1a0a2e;
+      --white: #f5f0e8;
+      --correct: #2ecc71;
+      --wrong: #e74c3c;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: var(--dark);
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(85,37,131,0.4) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(253,185,39,0.15) 0%, transparent 50%);
+      min-height: 100vh;
+      font-family: 'Barlow', sans-serif;
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 700px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 10vw, 6rem);
+      color: var(--gold);
+      letter-spacing: 4px;
+      line-height: 1;
+      text-shadow: 4px 4px 0px var(--purple);
+    }
+
+    header p {
+      color: rgba(245,240,232,0.6);
+      font-size: 1rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* Score bar */
+    .scorebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(85,37,131,0.3);
+      border: 1px solid rgba(253,185,39,0.2);
+      border-radius: 12px;
+      padding: 14px 24px;
+      margin-bottom: 28px;
+      backdrop-filter: blur(10px);
+    }
+
+    .scorebar .stat { text-align: center; }
+    .scorebar .stat .val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: var(--gold);
+      display: block;
+    }
+    .scorebar .stat .lbl {
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(245,240,232,0.5);
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      background: rgba(255,255,255,0.1);
+      border-radius: 99px;
+      height: 6px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--purple), var(--gold));
+      border-radius: 99px;
+      transition: width 0.5s ease;
+    }
+
+    /* Question card */
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(253,185,39,0.15);
+      border-radius: 20px;
+      padding: 36px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s ease;
+    }
+
+    .question-num {
+      font-size: 0.75rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+    }
+
+    .question-text {
+      font-size: clamp(1.1rem, 3vw, 1.4rem);
+      font-weight: 600;
+      line-height: 1.5;
+      color: var(--white);
+    }
+
+    /* Answer buttons */
+    .answers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .answers { grid-template-columns: 1fr; }
+    }
+
+    .answer-btn {
+      background: rgba(85,37,131,0.25);
+      border: 2px solid rgba(253,185,39,0.2);
+      border-radius: 12px;
+      padding: 16px 18px;
+      color: var(--white);
+      font-family: 'Barlow', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .answer-btn:hover:not(:disabled) {
+      background: rgba(253,185,39,0.15);
+      border-color: var(--gold);
+      transform: translateY(-2px);
+    }
+
+    .answer-btn.correct {
+      background: rgba(46,204,113,0.25);
+      border-color: var(--correct);
+      color: #a8ffcc;
+    }
+
+    .answer-btn.wrong {
+      background: rgba(231,76,60,0.25);
+      border-color: var(--wrong);
+      color: #ffaaaa;
+    }
+
+    .answer-btn:disabled { cursor: default; }
+
+    /* Feedback */
+    .feedback {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      min-height: 30px;
+      letter-spacing: 1px;
+      transition: opacity 0.3s;
+    }
+    .feedback.correct { color: var(--correct); }
+    .feedback.wrong { color: var(--wrong); }
+
+    /* Next button */
+    .next-btn {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--gold);
+      color: var(--dark);
+      border: none;
+      border-radius: 12px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: none;
+    }
+    .next-btn:hover { background: #ffd060; transform: translateY(-2px); }
+    .next-btn.show { display: block; }
+
+    /* Result screen */
+    #result-screen {
+      display: none;
+      text-align: center;
+    }
+
+    #result-screen.show { display: block; }
+
+    .result-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(253,185,39,0.3);
+      border-radius: 20px;
+      padding: 48px 36px;
+    }
+
+    .trophy {
+      font-size: 5rem;
+      margin-bottom: 16px;
+      animation: bounce 1s ease infinite alternate;
+    }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+
+    .result-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      color: var(--gold);
+      letter-spacing: 4px;
+      margin-bottom: 8px;
+    }
+
+    .result-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 5rem;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .result-msg {
+      color: rgba(245,240,232,0.6);
+      margin: 16px 0 32px;
+      font-size: 1.1rem;
+    }
+
+    .play-again {
+      padding: 16px 48px;
+      background: var(--gold);
+      color: var(--dark);
+      border: none;
+      border-radius: 12px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .play-again:hover { background: #ffd060; transform: translateY(-2px); }
+
+    /* Start screen */
+    #start-screen { text-align: center; }
+    #start-screen.hide { display: none; }
+
+    .start-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(253,185,39,0.2);
+      border-radius: 20px;
+      padding: 48px 36px;
+    }
+
+    .ball { font-size: 4rem; margin-bottom: 16px; }
+
+    .start-card p {
+      color: rgba(245,240,232,0.6);
+      margin-bottom: 32px;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .start-btn {
+      padding: 16px 48px;
+      background: var(--gold);
+      color: var(--dark);
+      border: none;
+      border-radius: 12px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .start-btn:hover { background: #ffd060; transform: translateY(-2px); }
+
+    #game-screen { display: none; }
+    #game-screen.show { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>LakeShow Trivia</h1>
+    <p>Test Your Lakers Knowledge</p>
+  </header>
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <div class="start-card">
+      <div class="ball">🏀</div>
+      <p>Think you know the Purple & Gold?<br>10 questions. No shortcuts. Laker Nation only.</p>
+      <button class="start-btn" onclick="startGame()">Let's Ball</button>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen">
+    <div class="scorebar">
+      <div class="stat"><span class="val" id="score-val">0</span><span class="lbl">Score</span></div>
+      <div class="stat"><span class="val" id="q-val">1/10</span><span class="lbl">Question</span></div>
+      <div class="stat"><span class="val" id="streak-val">0🔥</span><span class="lbl">Streak</span></div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+
+    <div class="card">
+      <div class="question-num" id="q-num">Question 1 of 10</div>
+      <div class="question-text" id="q-text">Loading...</div>
+    </div>
+
+    <div class="answers" id="answers"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">Next Question →</button>
+  </div>
+
+  <!-- Result Screen -->
+  <div id="result-screen">
+    <div class="result-card">
+      <div class="trophy" id="trophy">🏆</div>
+      <div class="result-title" id="result-title">Final Score</div>
+      <div class="result-score" id="result-score">0/10</div>
+      <p class="result-msg" id="result-msg"></p>
+      <button class="play-again" onclick="startGame()">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const questions = [
+    {
+      q: "How many NBA Championships have the Los Angeles Lakers won?",
+      answers: ["15", "17", "14", "16"],
+      correct: 1
+    },
+    {
+      q: "Which Laker scored 81 points in a single game in 2006?",
+      answers: ["LeBron James", "Shaquille O'Neal", "Kobe Bryant", "Jerry West"],
+      correct: 2
+    },
+    {
+      q: "What year did the Lakers move from Minneapolis to Los Angeles?",
+      answers: ["1958", "1962", "1960", "1965"],
+      correct: 2
+    },
+    {
+      q: "Who is known as 'The Logo' and played for the Lakers?",
+      answers: ["Elgin Baylor", "Jerry West", "Magic Johnson", "Kareem Abdul-Jabbar"],
+      correct: 1
+    },
+    {
+      q: "Magic Johnson wore what jersey number for the Lakers?",
+      answers: ["33", "32", "34", "31"],
+      correct: 1
+    },
+    {
+      q: "Which Laker won the most NBA MVP awards?",
+      answers: ["Kobe Bryant", "LeBron James", "Kareem Abdul-Jabbar", "Magic Johnson"],
+      correct: 2
+    },
+    {
+      q: "What arena do the Lakers currently play in?",
+      answers: ["Staples Center", "Forum", "Crypto.com Arena", "Lakers Arena"],
+      correct: 2
+    },
+    {
+      q: "The Lakers won three consecutive championships from 2000–2002. Who was their coach?",
+      answers: ["Pat Riley", "Phil Jackson", "Frank Vogel", "Luke Walton"],
+      correct: 1
+    },
+    {
+      q: "Which player's number 8 AND 24 are both retired by the Lakers?",
+      answers: ["Shaquille O'Neal", "LeBron James", "Kobe Bryant", "Magic Johnson"],
+      correct: 2
+    },
+    {
+      q: "LeBron James won his first Lakers championship in what year?",
+      answers: ["2019", "2021", "2020", "2022"],
+      correct: 2
+    }
+  ];
+
+  let current = 0;
+  let score = 0;
+  let streak = 0;
+  let answered = false;
+  let shuffled = [];
+
+  function shuffle(arr) {
+    return [...arr].sort(() => Math.random() - 0.5);
+  }
+
+  function startGame() {
+    current = 0;
+    score = 0;
+    streak = 0;
+    answered = false;
+    shuffled = shuffle(questions);
+
+    document.getElementById('start-screen').classList.add('hide');
+    document.getElementById('result-screen').classList.remove('show');
+    document.getElementById('game-screen').classList.add('show');
+
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    answered = false;
+    const q = shuffled[current];
+    document.getElementById('q-num').textContent = `Question ${current + 1} of ${shuffled.length}`;
+    document.getElementById('q-text').textContent = q.q;
+    document.getElementById('q-val').textContent = `${current + 1}/10`;
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('next-btn').classList.remove('show');
+    document.getElementById('progress-bar').style.width = `${(current / shuffled.length) * 100}%`;
+
+    const container = document.getElementById('answers');
+    container.innerHTML = '';
+
+    q.answers.forEach((ans, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.textContent = ans;
+      btn.onclick = () => selectAnswer(i, q.correct, btn);
+      container.appendChild(btn);
+    });
+  }
+
+  function selectAnswer(selected, correct, btn) {
+    if (answered) return;
+    answered = true;
+
+    const buttons = document.querySelectorAll('.answer-btn');
+    buttons.forEach(b => b.disabled = true);
+    buttons[correct].classList.add('correct');
+
+    const feedback = document.getElementById('feedback');
+
+    if (selected === correct) {
+      score++;
+      streak++;
+      btn.classList.add('correct');
+      feedback.textContent = streak >= 3 ? `🔥 On fire! +1` : '✓ Correct!';
+      feedback.className = 'feedback correct';
+    } else {
+      streak = 0;
+      btn.classList.add('wrong');
+      feedback.textContent = `✗ Wrong! The answer was: ${shuffled[current].answers[correct]}`;
+      feedback.className = 'feedback wrong';
+    }
+
+    document.getElementById('score-val').textContent = score;
+    document.getElementById('streak-val').textContent = streak + '🔥';
+    document.getElementById('next-btn').classList.add('show');
+
+    if (current === shuffled.length - 1) {
+      document.getElementById('next-btn').textContent = 'See Results →';
+    }
+  }
+
+  function nextQuestion() {
+    current++;
+    if (current >= shuffled.length) {
+      showResults();
+    } else {
+      loadQuestion();
+    }
+  }
+
+  function showResults() {
+    document.getElementById('game-screen').classList.remove('show');
+    document.getElementById('result-screen').classList.add('show');
+    document.getElementById('progress-bar').style.width = '100%';
+
+    const pct = score / shuffled.length;
+    document.getElementById('result-score').textContent = `${score}/10`;
+
+    let trophy, title, msg;
+    if (pct === 1)      { trophy='🏆'; title='Laker Legend!';    msg="Perfect score. You ARE the LakeShow."; }
+    else if (pct >= 0.8){ trophy='🥇'; title='Laker Nation!';    msg="You really know your Purple & Gold!"; }
+    else if (pct >= 0.6){ trophy='🥈'; title='Solid Fan!';       msg="Not bad — keep watching those highlights."; }
+    else if (pct >= 0.4){ trophy='🥉'; title='Keep Watching';    msg="You've got some studying to do, rookie."; }
+    else                { trophy='😬'; title='Yikes...';         msg="Did you just Google 'what is basketball'?"; }
+
+    document.getElementById('trophy').textContent = trophy;
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-msg').textContent = msg;
+  }
+</script>
+</body>
+</html>
